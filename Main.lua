@@ -11,6 +11,19 @@ local Threats = {
 	Bleed = 0x08
 }
 
+
+local RoleThreats = {
+	Tank = {},
+	Healer = {},
+	DPS = {}
+}
+
+function FilterThreatsByActiveRole(threats)
+	-- TODO: Implement
+	return threats
+end
+
+
 local ThreatTranslations = {
 	[Threats.TankMustStayInRange] = "Stay in range",
 	[Threats.TankBuster] = "Tank Buster",
@@ -56,7 +69,8 @@ function DungeonMobSummary_tooltipUnitWillChange(self)
 	end
 
 	self:AddLine("Threats:")
-	for _, threat in ipairs(ListUniqueThreats(threatTable)) do
+	local threats = FilterThreatsByActiveRole(ListUniqueThreats(threatTable))
+	for _, threat in ipairs(threats) do
 		self:AddLine(threat)
 	end
 end
