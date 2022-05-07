@@ -1,4 +1,9 @@
 ## Version: 90200
 ## Title: DungeonMobSummary
 
+embeds.xml
+
+# Locale/enGB.lua
+
 Main.lua
+Shadowlands/Plaguefall.lua

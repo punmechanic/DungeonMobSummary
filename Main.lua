@@ -1,26 +1,28 @@
--- These are not bit flags.
--- The numbers are used so we can refer to each threat by its key in code.
-local Threats = {
-	TankMustStayInRange = 0x01,
-	TankBuster = 0x02,
-	Interrupt = 0x03,
-	Decurse = 0x04,
-	Purge = 0x05,
-	Disease = 0x06,
-	Poison = 0x07,
-	Bleed = 0x08
-}
+DungeonMobSummary = LibStub("AceAddon-3.0"):NewAddon("DungeonMobSummary")
 
-local ThreatTranslations = {
-	[Threats.TankMustStayInRange] = "Stay in range",
-	[Threats.TankBuster] = "Tank Buster",
-	[Threats.Poison] = "Applies poison",
-	[Threats.Disease] = "Applies disease"
+local L = LibStub("AceLocale-3.0"):GetLocale("DungeonMobSummary", true)
+DungeonMobSummary.Threats = {
+	TankMustStayInRange = {
+		Label = L["Stay in range"],
+	},
+	TankBuster = {
+		Label = L["Tank Buster"],
+	},
+	Interrupt = {},
+	Decurse = {},
+	Purge = {},
+	Disease = {
+		Label = L["Applies disease"]
+	},
+	Poison = {
+		Label = L["Applies poison"]
+	},
+	Bleed = {}
 }
 
 -- This would benefit more from being specific to specialisation capabilities,
 -- like showing threats for classes with decurses, rather than showing decurses for healers.
-local RoleThreats = {
+DungeonMobSummary.RoleThreats = {
 	ALL = {
 		[Threats.Interrupt] = true
 	},
@@ -35,13 +37,13 @@ local RoleThreats = {
 -- FilterThreatsFilterThreatsByActiveRole splits threats into two groups,
 -- one group for the threats that a player with the given activeRole might
 -- care more about, and another group for all other threats
-function FilterThreatsByActiveRole(activeRole, threats)
+local function FilterThreatsByActiveRole(activeRole, threats)
 	-- This can happen if the user is not in a group.
 	if activeRole == "NONE" then
 		return threats
 	end
 
-	local roleThreatIds = RoleThreats[activeRole]
+	local roleThreatIds = DungeonMobSummary.RoleThreats[activeRole]
 	local relevantThreats = {}
 	local otherThreats = {}
 	for _, threatId in ipairs(threats) do
@@ -51,16 +53,6 @@ function FilterThreatsByActiveRole(activeRole, threats)
 
 	return relevantThreats, otherThreats
 end
-
-local AbilityThreatList = {
-	-- Doctor Ickus
-	[164967] = {
-		-- Burning Strain
-		[322358] = {Threats.TankMustStayInRange},
-		-- TODO: Dummy threat
-		[1234] = {Threats.TankBuster, Threats.Poison, Threats.Disease}
-	}
-}
 
 function ListUniqueThreats(abilities)
 	local uniqueThreats = {}
@@ -79,10 +71,13 @@ function ListUniqueThreats(abilities)
 end
 
 function DungeonMobSummary_tooltipUnitWillChange(self)
+	-- TODO: Work out what Zone we are in to determine the ability list.
+	local abilityList = DungeonMobSummary.Plaguefall.Abilities
+
 	local _name, id = self:GetUnit()
 	local guid = UnitGUID(id)
 	local npcId = select(6, guid.split("-"))
-	local threatTable = AbilityThreatList[npcId]
+	local threatTable = abilityList[npcId]
 	if threatTable == nil then
 		-- We don't know anything about this unit
 		return
@@ -104,6 +99,8 @@ function DungeonMobSummary_tooltipUnitWillChange(self)
 	end
 end
 
-GameTooltip:HookScript("OnTooltipSetUnit", function (self)
-	DungeonMobSummary_tooltipUnitWillChange(self)
-end)
+function DungeonMobSummary:OnInitialize()
+	GameTooltip:HookScript("OnTooltipSetUnit", function (self)
+		DungeonMobSummary_tooltipUnitWillChange(self)
+	end)
+end
