@@ -1,12 +1,11 @@
-DungeonMobSummary = LibStub("AceAddon-3.0"):NewAddon("DungeonMobSummary")
-
+local DungeonMobSummary = LibStub("AceAddon-3.0"):NewAddon("DungeonMobSummary")
 local L = LibStub("AceLocale-3.0"):GetLocale("DungeonMobSummary", true)
 DungeonMobSummary.Threats = {
 	TankMustStayInRange = {
-		Label = L["Stay in range"],
+		Label = L["Stay in range"]
 	},
 	TankBuster = {
-		Label = L["Tank Buster"],
+		Label = L["Tank Buster"]
 	},
 	Interrupt = {},
 	Decurse = {},
@@ -97,6 +96,11 @@ function DungeonMobSummary_tooltipUnitWillChange(self)
 	for _, threat in ipairs(otherThreats) do
 		self:AddLine(threat, 0.1, 0.1, 0.1)
 	end
+end
+
+function DungeonMobSummary:AddAbilityTable(table, predicates)
+	print(self.AbilityTables)
+	print(table)
 end
 
 function DungeonMobSummary:OnInitialize()

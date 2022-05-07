@@ -3,7 +3,9 @@
 
 embeds.xml
 
-# Locale/enGB.lua
+Locale/enUS.lua
 
 Main.lua
+
+Shadowlands/DevTest.lua
 Shadowlands/Plaguefall.lua
