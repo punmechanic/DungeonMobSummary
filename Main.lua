@@ -1,6 +1,6 @@
 local DungeonMobSummary = LibStub("AceAddon-3.0"):NewAddon("DungeonMobSummary")
 local L = LibStub("AceLocale-3.0"):GetLocale("DungeonMobSummary", true)
-DungeonMobSummary.Threats = {
+local Threats = {
 	TankMustStayInRange = {
 		Label = L["Stay in range"]
 	},
@@ -21,17 +21,20 @@ DungeonMobSummary.Threats = {
 
 -- This would benefit more from being specific to specialisation capabilities,
 -- like showing threats for classes with decurses, rather than showing decurses for healers.
-DungeonMobSummary.RoleThreats = {
+local RoleThreats = {
 	ALL = {
 		[Threats.Interrupt] = true
 	},
 	TANK = {
 		[Threats.TankMustStayInRange] = true,
-		[Threats.TankBuster] = true,
+		[Threats.TankBuster] = true
 	},
 	HEALER = {},
 	DAMAGER = {}
 }
+
+DungeonMobSummary.Threats = Threats
+DungeonMobSummary.RoleThreats = RoleThreats
 
 -- FilterThreatsFilterThreatsByActiveRole splits threats into two groups,
 -- one group for the threats that a player with the given activeRole might
@@ -63,20 +66,17 @@ function ListUniqueThreats(abilities)
 
 	local components = {}
 	for threat, _true in pairs(uniqueThreats) do
-		table.insert(components, ThreatTranslations[threat])
+		table.insert(components, threat.Label)
 	end
 
 	return components
 end
 
-function DungeonMobSummary_tooltipUnitWillChange(self)
-	-- TODO: Work out what Zone we are in to determine the ability list.
-	local abilityList = DungeonMobSummary.Plaguefall.Abilities
-
-	local _name, id = self:GetUnit()
+function DungeonMobSummary:tooltipUnitWillChange(tooltip)
+	local _name, id = tooltip:GetUnit()
 	local guid = UnitGUID(id)
-	local npcId = select(6, guid.split("-"))
-	local threatTable = abilityList[npcId]
+	local npcId = string.match(guid, "%w+-%w+-%w+-%w+-%w+-(%w+)-*")
+	local threatTable = self.NpcAbilityTable[npcId]
 	if threatTable == nil then
 		-- We don't know anything about this unit
 		return
@@ -87,24 +87,50 @@ function DungeonMobSummary_tooltipUnitWillChange(self)
 	local roleThreats, otherThreats = FilterThreatsByActiveRole(activeRole, uniqueThreats)
 
 	-- Intentionally left blank
-	self:AddLine(" ")
+	tooltip:AddLine(" ")
 
 	for _, threat in ipairs(roleThreats) do
-		self:AddLine(threat)
+		tooltip:AddLine(threat)
 	end
 
 	for _, threat in ipairs(otherThreats) do
-		self:AddLine(threat, 0.1, 0.1, 0.1)
+		tooltip:AddLine(threat, 0.1, 0.1, 0.1)
 	end
 end
 
-function DungeonMobSummary:AddAbilityTable(table, predicates)
-	print(self.AbilityTables)
-	print(table)
+function DungeonMobSummary:AddAbilityTable(tbl)
+	if self.NpcAbilityTable == nil then
+		self.NpcAbilityTable = {}
+	end
+
+	-- Ability tables have the following format:
+	-- { [npcID]: { [abilityID] = {threats} } }
+	for k, v in pairs(tbl) do
+		-- Users can pass numbers which will cause subtle bugs
+		if type(k) == "number" then
+			k = tostring(k)
+		end
+
+		-- Merge entries that already exist.
+		if self.NpcAbilityTable[k] == nil then
+			self.NpcAbilityTable[k] = {}
+		end
+
+		for abilityID, threats in pairs(v) do
+			if self.NpcAbilityTable[k][abilityID] == nil then
+				self.NpcAbilityTable[k][abilityID] = threats
+			else
+				for _, threat in ipairs(threats) do
+					table.insert(self.NpcAbilityTable[k][abilityID], threat)
+				end
+			end
+		end
+	end
 end
 
 function DungeonMobSummary:OnInitialize()
+	local addon = self
 	GameTooltip:HookScript("OnTooltipSetUnit", function (self)
-		DungeonMobSummary_tooltipUnitWillChange(self)
+		addon:tooltipUnitWillChange(self)
 	end)
 end
