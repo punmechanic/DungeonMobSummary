@@ -11,25 +11,46 @@ local Threats = {
 	Bleed = 0x08
 }
 
-
-local RoleThreats = {
-	Tank = {},
-	Healer = {},
-	DPS = {}
-}
-
-function FilterThreatsByActiveRole(threats)
-	-- TODO: Implement
-	return threats
-end
-
-
 local ThreatTranslations = {
 	[Threats.TankMustStayInRange] = "Stay in range",
 	[Threats.TankBuster] = "Tank Buster",
 	[Threats.Poison] = "Applies poison",
 	[Threats.Disease] = "Applies disease"
 }
+
+-- This would benefit more from being specific to specialisation capabilities,
+-- like showing threats for classes with decurses, rather than showing decurses for healers.
+local RoleThreats = {
+	ALL = {
+		[Threats.Interrupt] = true
+	},
+	TANK = {
+		[Threats.TankMustStayInRange] = true,
+		[Threats.TankBuster] = true,
+	},
+	HEALER = {},
+	DAMAGER = {}
+}
+
+-- FilterThreatsFilterThreatsByActiveRole splits threats into two groups,
+-- one group for the threats that a player with the given activeRole might
+-- care more about, and another group for all other threats
+function FilterThreatsByActiveRole(activeRole, threats)
+	-- This can happen if the user is not in a group.
+	if activeRole == "NONE" then
+		return threats
+	end
+
+	local roleThreatIds = RoleThreats[activeRole]
+	local relevantThreats = {}
+	local otherThreats = {}
+	for _, threatId in ipairs(threats) do
+		local dest = roleThreatIds[threatId] and relevantThreats or otherThreats
+		table.insert(dest, threatId)
+	end
+
+	return relevantThreats, otherThreats
+end
 
 local AbilityThreatList = {
 	-- Doctor Ickus
@@ -60,18 +81,26 @@ end
 function DungeonMobSummary_tooltipUnitWillChange(self)
 	local _name, id = self:GetUnit()
 	local guid = UnitGUID(id)
-	local npcId = 164967
-	-- local npcId = select(6, guid.split("-"))
+	local npcId = select(6, guid.split("-"))
 	local threatTable = AbilityThreatList[npcId]
 	if threatTable == nil then
 		-- We don't know anything about this unit
 		return
 	end
 
-	self:AddLine("Threats:")
-	local threats = FilterThreatsByActiveRole(ListUniqueThreats(threatTable))
-	for _, threat in ipairs(threats) do
+	local activeRole = UnitGroupRolesAssigned("player")
+	local uniqueThreats = ListUniqueThreats(threatTable)
+	local roleThreats, otherThreats = FilterThreatsByActiveRole(activeRole, uniqueThreats)
+
+	-- Intentionally left blank
+	self:AddLine(" ")
+
+	for _, threat in ipairs(roleThreats) do
 		self:AddLine(threat)
+	end
+
+	for _, threat in ipairs(otherThreats) do
+		self:AddLine(threat, 0.1, 0.1, 0.1)
 	end
 end
 
